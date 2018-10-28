@@ -17,7 +17,7 @@ public class FileManager {
 
     // Lê uma imagem no caminho path
     public static BufferedImage read(String path) throws IOException{
-        BufferedImage imagem = ImageIO.read(new File(DEFAULT_INPUT_PATH + path));
+        BufferedImage imagem = ImageIO.read(new File(path));
         return imagem;
     }
 

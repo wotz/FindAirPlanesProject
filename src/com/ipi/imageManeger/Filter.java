@@ -1,5 +1,6 @@
 package com.ipi.imageManeger;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
@@ -7,19 +8,24 @@ import java.util.stream.Collectors;
 
 public class Filter {
 
-    public static BufferedImage filter(List<BufferedImage> imageList) {
-        return toCalculateAvarage(imageList);
-    }
 
-    private static BufferedImage toCalculateAvarage(List<BufferedImage> images) {
+    public static void toCalculateAvarage(List<BufferedImage> images, BufferedImage image) {
         int width = images.get(0).getWidth();
         int height = images.get(0).getHeight();
-        int imageType = images.get(0).getType();
-        BufferedImage retorno = new BufferedImage(width, height, imageType);
-        for (int i = 0; i < width * height; i++) {
-
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++) {
+                final int a = i;
+                final int b = j;
+                List<Double> ycbcr = new ArrayList<>();
+                for (int dim = 0; dim < 3; dim++) {
+                    final int c = dim;
+                    double value = images.stream()
+                            .mapToDouble( m -> (Converter.rgbToYCbCr(m.getRGB(a,b)).get(c))/100.0).sum();
+                    ycbcr.add(dim, value);
+                }
+                image.setRGB(i, j, Converter.yCbCrToRgb(ycbcr));
+            }
         }
-        return retorno;
     }
 
     public static BufferedImage medianFilter(BufferedImage image) {
@@ -27,9 +33,13 @@ public class Filter {
         int y = 1;
         BufferedImage filterImage = new BufferedImage(image.getWidth(), image.getHeight(), image.getType());
         for ( ; Boolean.TRUE ; ) {
-            List<Integer> window = doWindow(x, y, image);
-            Integer medianValue = takeMedian(window);
-            filterImage.setRGB(x, y, medianValue);
+            List<Double> ycbcr = Converter.rgbToYCbCr((new Color(image.getRGB(x, y))).getRGB());
+            for (int i = 0; i < 3; i++) {
+                List<Double> window = doWindow(x, y, image, i);
+                Double medianValue = takeMedian(window);
+                ycbcr.set(i, medianValue);
+            }
+            filterImage.setRGB(x, y, Converter.yCbCrToRgb(ycbcr));
             List<Integer> positions = moveWindow(x, y, image);
             if (positions.size() != 2) {
                 break;
@@ -57,17 +67,17 @@ public class Filter {
         return position;
     }
 
-    private static List<Integer> doWindow(int x, int y, BufferedImage image) {
-        List<Integer> window = new ArrayList<>();
+    private static List<Double> doWindow(int x, int y, BufferedImage image, int channel) {
+        List<Double> window = new ArrayList<>();
         for (int i = x - 1; i <= x + 1; i++) {
             for(int j = y - 1; j <= y + 1; j++) {
-                window.add(image.getRGB(i, j));
+                window.add(Converter.rgbToYCbCr(image.getRGB(i, j)).get(channel));
             }
         }
         return window;
     }
 
-    private static Integer takeMedian(List<Integer> values) {
+    private static Double takeMedian(List<Double> values) {
         values = values.stream().sorted().collect(Collectors.toList());
         return values.get(4);
     }
